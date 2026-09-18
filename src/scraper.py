@@ -7,6 +7,12 @@ import cloudscraper
 import time
 import csv
 import os 
+import unicodedata
+
+# Clean string from accents and special characters for file naming
+def clean_name(text):
+    text = unicodedata.normalize('NFD', str(text)).encode('ascii', 'ignore').decode('utf-8')
+    return text.replace(' ', '_').replace('/', '_')
 
 #Setup browsers
 chrome_options = Options()
@@ -30,7 +36,7 @@ headers = {
 } 
 
 #Loop scraping
-for page in range(1,5) :
+for page in range(1,17) :
     url = base_url.format(page)
     print(f"\nExtrect from {page} page : {url}")
 
@@ -70,8 +76,10 @@ for page in range(1,5) :
         if not img_url or "vestiairecollective" not in img_url:
             continue
 
-        #Save the data
-        img_name = f"{brand}_{description}.jpg".replace(" ", "_").replace("/", "_")
+        #Save the data using clean_name to remove accents
+        clean_brand = clean_name(brand)
+        clean_desc = clean_name(description)
+        img_name = f"{clean_brand}_{clean_desc}.jpg"
         img_path = f"data/images/{img_name}"
         
         # Download image using cloudscraper instead of requests
