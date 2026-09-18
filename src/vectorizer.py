@@ -1,31 +1,13 @@
 import torch 
 import torch.nn as nn
-from torchvision.models import resnet50 , ResNet50_Weights # -> Import a vision model train for handbag
-from torchvision import transforms
+from model import model, processeur
 from PIL import Image
 import pandas as pd
-import numpy as np
 import os
-vectors = []
 
-#Download the pre-trained ResNet50 weights
-model = resnet50(weights=ResNet50_Weights.DEFAULT)
-
-#Remove the final classification layer
-modele_extractor = nn.Sequential(*list(model.children())[:-1])
-modele_extractor.eval()
-
-#resnet50 accept only a square format for the image (224*224)
-transformation = transforms.Compose([
-    transforms.Resize((224, 224)),       
-    transforms.ToTensor(),               
-    transforms.Normalize(               
-        mean=[0.485, 0.456, 0.406], 
-        std=[0.229, 0.224, 0.225]
-    )
-])
 
 #Read the csv file 
+vectors = []
 df = pd.read_csv('../data/dataset_bag.csv')
 
 
@@ -36,11 +18,16 @@ for index , line in df.iterrows():
         continue
 
     img = Image.open(path_img).convert('RGB')
-    tenseur = transformation(img).unsqueeze(0)
+    inputs = processeur(images=img, return_tensors="pt")
 
     #We don't train the model 
     with torch.no_grad():
-        vector = modele_extractor(tenseur).numpy().flatten()
+        features = model.get_image_features(pixel_values=inputs['pixel_values'])
+        if isinstance(features, torch.Tensor):
+            vector = features.detach().numpy().flatten()
+        
+        else:
+            vector = features.pooler_output.detach().numpy().flatten()
 
     vectors.append(vector)
 
